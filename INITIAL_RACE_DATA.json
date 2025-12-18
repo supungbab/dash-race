@@ -1,0 +1,85 @@
+{
+  "collection": "races",
+  "documents": [
+    {
+      "documentId": "race_1",
+      "fields": {
+        "name": {
+          "description": "경기 이름",
+          "example": "제1회 경기",
+          "type": "string"
+        },
+        "status": {
+          "description": "경기 상태",
+          "value": "active",
+          "type": "string",
+          "note": "active로 설정하면 바로 배팅 가능"
+        },
+        "createdAt": {
+          "description": "생성 시각",
+          "type": "timestamp",
+          "note": "Firebase Console에서 추가 시 현재 시각으로 설정"
+        }
+      }
+    }
+  ],
+  "instructions": {
+    "ko": [
+      "1. Firebase Console 열기 (https://console.firebase.google.com)",
+      "2. 프로젝트 선택",
+      "3. 왼쪽 메뉴에서 'Firestore Database' 클릭",
+      "4. '컬렉션 시작' 또는 '컬렉션 추가' 클릭",
+      "5. 컬렉션 ID: 'races' 입력",
+      "6. 문서 ID: 'race_1' 입력 (또는 자동 생성)",
+      "7. 필드 추가:",
+      "   - 필드: name, 타입: string, 값: '제1회 경기'",
+      "   - 필드: status, 타입: string, 값: 'active'",
+      "   - 필드: createdAt, 타입: timestamp, 값: [현재 시각]",
+      "8. '저장' 클릭",
+      "",
+      "또는 관리자 패널에서 바로 생성할 수 있습니다:",
+      "1. 앱 실행 후 로그인",
+      "2. 관리자 패널 접속",
+      "3. '새 경기 생성' 섹션에서 경기 이름 입력",
+      "4. '경기 생성' 버튼 클릭"
+    ],
+    "en": [
+      "1. Open Firebase Console (https://console.firebase.google.com)",
+      "2. Select your project",
+      "3. Click 'Firestore Database' in left menu",
+      "4. Click 'Start collection' or 'Add collection'",
+      "5. Collection ID: 'races'",
+      "6. Document ID: 'race_1' (or auto-generate)",
+      "7. Add fields:",
+      "   - Field: name, Type: string, Value: 'Race 1'",
+      "   - Field: status, Type: string, Value: 'active'",
+      "   - Field: createdAt, Type: timestamp, Value: [current time]",
+      "8. Click 'Save'",
+      "",
+      "Or create directly from admin panel:",
+      "1. Login to the app",
+      "2. Go to admin panel",
+      "3. Enter race name in 'Create New Race' section",
+      "4. Click 'Create Race' button"
+    ]
+  },
+  "example_queries": {
+    "get_active_race": {
+      "description": "활성 경기 조회",
+      "code": "db.collection('races').where('status', '==', 'active').limit(1).get()"
+    },
+    "get_all_races": {
+      "description": "모든 경기 조회 (최신순)",
+      "code": "db.collection('races').orderBy('createdAt', 'desc').get()"
+    },
+    "get_race_bets": {
+      "description": "특정 경기의 배팅 조회",
+      "code": "db.collection('bets').where('raceId', '==', 'race_1').get()"
+    }
+  },
+  "migration_note": {
+    "ko": "기존에 race_1로 배팅한 데이터가 있다면, 위 방법으로 race_1 문서를 생성하면 기존 배팅 데이터와 자동으로 연결됩니다.",
+    "en": "If you have existing betting data with race_1, creating the race_1 document will automatically link with existing bet data."
+  }
+}
+

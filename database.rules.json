@@ -1,0 +1,53 @@
+{
+  "rules": {
+    "race_session_vue3": {
+      // 레이스 상태 - 모두 읽기 가능
+      "state": {
+        ".read": true,
+        // 쓰기는 클라이언트에서 직접 하지만, 값 검증 추가
+        ".write": true,
+        ".validate": "newData.hasChildren(['status'])",
+        "status": {
+          ".validate": "newData.isString() && (newData.val() == 'waiting' || newData.val() == 'countdown' || newData.val() == 'started' || newData.val() == 'finished')"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "countdownStartedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "startedAt": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        },
+        "finishedAt": {
+          ".validate": "newData.isNumber() || newData.val() == null"
+        }
+      },
+      
+      // 참가자 목록 - 모두 읽기 가능
+      "participants": {
+        ".read": true,
+        ".write": true,
+        
+        "$userId": {
+          // 참가자 데이터 검증
+          ".validate": "newData.hasChildren(['name', 'distance'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+          },
+          "distance": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+          },
+          "finish_time": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          }
+        }
+      }
+    },
+    
+    // 다른 경로는 모두 접근 불가
+    ".read": false,
+    ".write": false
+  }
+}
+
