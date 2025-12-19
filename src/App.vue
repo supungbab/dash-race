@@ -8,7 +8,7 @@ const router = useRouter();
 const userStore = useUserStore();
 
 const isLoginPage = computed(() => route.path === '/login');
-const hideNavToggle = computed(() => route.path === '/race-display');
+const hideNavToggle = computed(() => route.path === '/sprint-display');
 watch(hideNavToggle, () => {
   isNavOpen.value = false;
 });
@@ -43,9 +43,9 @@ const handleLogout = () => {
         <header v-if="isNavOpen">
           <div class="wrapper">
             <nav>
-              <RouterLink to="/race-participant">레이스 참가자</RouterLink>
-              <RouterLink v-if="userStore.isAdmin" to="/race-display">레이스 전광판</RouterLink>
-              <RouterLink v-if="userStore.isAdmin" to="/race-admin">레이스 관리자</RouterLink>
+              <RouterLink to="/sprint-runner">레이스 참가자</RouterLink>
+              <RouterLink v-if="userStore.isAdmin" to="/sprint-display">레이스 전광판</RouterLink>
+              <RouterLink v-if="userStore.isAdmin" to="/sprint-admin">레이스 관리자</RouterLink>
               <button @click="handleLogout" class="btn-logout">로그아웃</button>
             </nav>
           </div>
