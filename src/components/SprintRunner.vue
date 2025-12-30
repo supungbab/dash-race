@@ -10,7 +10,7 @@ const route = useRoute();
 const userStore = useUserStore();
 
 const roomId = computed(() => {
-  const room = route.query.room as string;
+  const room = route.params.roomId as string;
   if (!room) {
     console.error('Room ID is required');
     return null;
@@ -24,9 +24,10 @@ const userNickname = computed(() => userStore.nickname || '참가자');
 
 // 레이스 상태
 interface RaceState {
-  status: 'waiting' | 'countdown' | 'started' | 'finished';
+  status: 'waiting' | 'preparing' | 'countdown' | 'started' | 'finished';
   countdownStartedAt?: number;
   finishDistance?: number;
+  expiresAt?: number; // 방 만료 시간
 }
 
 const raceState = ref<RaceState>({ status: 'waiting' });
@@ -130,7 +131,7 @@ onMounted(() => {
   }
   
   if (!roomId.value) {
-    alert('Room ID가 필요합니다. URL에 ?room=방ID를 추가해주세요.');
+    alert('Room ID가 필요합니다. URL에 /sprint-runner/방ID 형식으로 접속해주세요.');
     return;
   }
   
@@ -317,6 +318,12 @@ async function handleJoin() {
     } else {
       alert('레이스가 이미 시작되었습니다. 다음 레이스를 기다려주세요.');
     }
+    return;
+  }
+  
+  // 만료시간 체크 (이미 입장한 참가자는 체크하지 않음)
+  if (raceState.value.expiresAt && Date.now() > raceState.value.expiresAt) {
+    alert('방이 만료되었습니다. 새로운 방에 참가해주세요.');
     return;
   }
   
@@ -619,6 +626,7 @@ async function handleRunClick() {
         
         <div class="race-status-badge" :class="raceState.status">
           <span v-if="raceState.status === 'waiting'">⏳ 대기 중</span>
+          <span v-else-if="raceState.status === 'preparing'">🔔 준비 중!</span>
           <span v-else-if="raceState.status === 'countdown'">🔔 곧 시작!</span>
           <span v-else-if="raceState.status === 'started'">🏃 진행 중</span>
           <span v-else-if="raceState.status === 'finished'">🏁 종료</span>
@@ -627,11 +635,12 @@ async function handleRunClick() {
         <button 
           class="join-button"
           @click="handleJoin"
-          :disabled="isJoining || raceState.status !== 'waiting'"
+          :disabled="isJoining || raceState.status !== 'waiting' || !!(raceState.expiresAt && Date.now() > raceState.expiresAt)"
         >
           <span v-if="isJoining">입장 중...</span>
           <span v-else-if="raceState.status === 'finished'">🚫 종료된 레이스</span>
-          <span v-else-if="raceState.status === 'started' || raceState.status === 'countdown'">🚫 이미 시작됨</span>
+          <span v-else-if="raceState.status === 'started' || raceState.status === 'countdown' || raceState.status === 'preparing'">🚫 이미 시작됨</span>
+          <span v-else-if="raceState.expiresAt && Date.now() > raceState.expiresAt">🚫 만료된 방</span>
           <span v-else>🚪 입장하기</span>
         </button>
         

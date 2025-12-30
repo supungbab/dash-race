@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { dbRealTime, dbRef, onValue, update } from '../config/firebase';
 import { FINISH_DISTANCE, COUNTDOWN_DURATION } from '../config/constants';
 
 const route = useRoute();
+const router = useRouter();
 const roomId = computed(() => {
-  const room = route.query.room as string;
+  const room = route.params.roomId as string;
   if (!room) {
     console.error('Room ID is required');
     return null;
@@ -318,7 +319,7 @@ function checkDramaticMoments() {
 
 onMounted(() => {
   if (!roomId.value) {
-    alert('Room ID가 필요합니다. URL에 ?room=방ID를 추가해주세요.');
+    alert('Room ID가 필요합니다. URL에 /sprint-display/방ID 형식으로 접속해주세요.');
     return;
   }
   
@@ -434,6 +435,35 @@ watch(isRaceFinished, async (finished) => {
 });
 
 const showRankingModal = ref(false);
+
+// 경기 종료 함수
+async function finishRace() {
+  if (!roomId.value) return;
+  
+  if (!confirm('레이스를 종료하시겠습니까?')) {
+    return;
+  }
+
+  try {
+    const raceStateRef = dbRef(dbRealTime, `rooms/${roomId.value}/state`);
+    await update(raceStateRef, {
+      status: 'finished',
+      finishedAt: Date.now()
+    });
+    updateCommentary('🏁 레이스가 종료되었습니다!');
+  } catch (error) {
+    console.error('레이스 종료 오류:', error);
+    alert(`오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 방 만들기로 이동
+function goHome() {
+  if (!confirm('방 만들기로 이동하시겠습니까?')) {
+    return;
+  }
+  router.push('/room');
+}
 
 // --- 유틸리티 ---
 
@@ -1207,6 +1237,23 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
               <div class="ranking-distance">{{ Math.round(racer.distance) }}m</div>
             </div>
           </div>
+          
+          <!-- 경기 종료 및 홈 버튼 -->
+          <div class="modal-footer">
+            <button 
+              @click="finishRace" 
+              :disabled="raceState.status !== 'started'"
+              class="finish-race-button"
+            >
+              🏁 경기 종료
+            </button>
+            <button 
+              @click="goHome" 
+              class="home-button"
+            >
+              🆕 방 만들기
+            </button>
+          </div>
         </div>
       </div>
     </Transition>
@@ -1361,6 +1408,56 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
   80% { 
     transform: translateX(1px) translateY(-1px) rotate(-4deg) scaleY(0.98);
   }
+}
+
+.race-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.finish-race-button {
+  width: 100%;
+  padding: 15px 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF4757 100%);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+}
+
+.finish-race-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.5);
+}
+
+.finish-race-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #D3D3D3 0%, #A9A9A9 100%);
+}
+
+.home-button {
+  width: 100%;
+  padding: 15px 24px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+  border: 3px solid rgba(255, 255, 255, 0.6);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(30, 144, 255, 0.4);
+}
+
+.home-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(30, 144, 255, 0.5);
 }
 
 .race-stats {
@@ -1892,6 +1989,15 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
   padding: 20px;
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.modal-footer {
+  padding: 20px;
+  border-top: 2px solid rgba(255, 182, 193, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 182, 193, 0.1);
 }
 
 .ranking-item {

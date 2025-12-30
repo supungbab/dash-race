@@ -47,6 +47,8 @@
     
     "rooms": {
       "$roomId": {
+        ".read": true,
+        ".write": true,
         // 방 상태 - 모두 읽기 가능
         "state": {
           ".read": true,

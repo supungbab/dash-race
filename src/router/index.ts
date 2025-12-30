@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginPage from '../components/LoginPage.vue';
 import HomePage from '../components/HomePage.vue';
+import CreateRoomPage from '../components/CreateRoomPage.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,18 +16,32 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomePage,
-      meta: { requiresAuth: true }
     },
     {
-      path: '/sprint-runner',
+      path: '/room',
+      name: 'create-room',
+      component: CreateRoomPage,
+    },
+    {
+      path: '/room/:roomId',
+      name: 'room',
+      component: () => import('../components/RoomPage.vue'),
+    },
+    {
+      path: '/sprint-runner/:roomId',
       name: 'sprint-runner',
       component: () => import('../components/SprintRunner.vue'),
       meta: { requiresAuth: true }
     },
     {
-      path: '/sprint-display',
+      path: '/sprint-display/:roomId',
       name: 'sprint-display',
       component: () => import('../components/SprintDisplay.vue'),
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../components/NotFoundPage.vue'),
     },
   ],
 });
