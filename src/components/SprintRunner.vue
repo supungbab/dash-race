@@ -747,6 +747,10 @@ async function handleRunClick() {
           <span class="status-icon">🚀</span>
           <span>입장이 완료되었습니다.</span>
         </template>
+        <template v-else-if="raceState.status === 'preparing'">
+          <span class="status-icon">🔔</span>
+          <span>준비하세요!</span>
+        </template>
         <template v-else-if="raceState.status === 'countdown'">
           <span class="status-icon">🔔</span>
           <span>준비하세요!</span>
