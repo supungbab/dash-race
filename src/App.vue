@@ -43,9 +43,7 @@ const handleLogout = () => {
         <header v-if="isNavOpen">
           <div class="wrapper">
             <nav>
-              <RouterLink to="/sprint-runner">레이스 참가자</RouterLink>
-              <RouterLink v-if="userStore.isAdmin" to="/sprint-display">레이스 전광판</RouterLink>
-              <RouterLink v-if="userStore.isAdmin" to="/sprint-admin">레이스 관리자</RouterLink>
+              <RouterLink to="/">홈</RouterLink>
               <button @click="handleLogout" class="btn-logout">로그아웃</button>
             </nav>
           </div>

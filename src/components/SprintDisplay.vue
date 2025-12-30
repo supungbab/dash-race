@@ -1,7 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { dbRealTime, dbRef, onValue, update } from '../config/firebase';
-import { FINISH_DISTANCE, RACE_ID, COUNTDOWN_DURATION } from '../config/constants';
+import { FINISH_DISTANCE, COUNTDOWN_DURATION } from '../config/constants';
+
+const route = useRoute();
+const roomId = computed(() => {
+  const room = route.query.room as string;
+  if (!room) {
+    console.error('Room ID is required');
+    return null;
+  }
+  return room;
+});
 
 interface Racer {
   name: string;
@@ -23,7 +34,8 @@ interface DramaEvent {
 }
 
 interface RaceState {
-  status: 'waiting' | 'countdown' | 'started' | 'finished';
+  status: 'waiting' | 'preparing' | 'countdown' | 'started' | 'finished';
+  preparingStartedAt?: number;
   countdownStartedAt?: number;
   finishDistance?: number;
 }
@@ -137,7 +149,8 @@ function stopCountdown() {
 }
 
 function listenForRaceState() {
-  const raceStateRef = dbRef(dbRealTime, `${RACE_ID}/state`);
+  if (!roomId.value) return;
+  const raceStateRef = dbRef(dbRealTime, `rooms/${roomId.value}/state`);
   
   raceStateUnsubscribe = onValue(raceStateRef, (snapshot) => {
     const data = snapshot.val();
@@ -145,6 +158,11 @@ function listenForRaceState() {
       const newState = data as RaceState;
       const oldStatus = raceState.value.status;
       raceState.value = newState;
+      
+      if (newState.status === 'preparing' && oldStatus !== 'preparing') {
+        updateCommentary('🔔 준비하세요! 곧 시작됩니다!');
+        stopCountdown();
+      }
       
       if (newState.status === 'countdown' && oldStatus !== 'countdown') {
         startCountdown(newState.countdownStartedAt);
@@ -155,7 +173,7 @@ function listenForRaceState() {
         updateCommentary('🏇 레이스가 시작되었습니다! 과연 오늘의 주인공은?');
       }
       
-      if (newState.status !== 'countdown') {
+      if (newState.status !== 'countdown' && newState.status !== 'preparing') {
         stopCountdown();
       }
     } else {
@@ -299,6 +317,11 @@ function checkDramaticMoments() {
 // --- 실시간 데이터 ---
 
 onMounted(() => {
+  if (!roomId.value) {
+    alert('Room ID가 필요합니다. URL에 ?room=방ID를 추가해주세요.');
+    return;
+  }
+  
   if (TEST_MODE) {
     racers.value = generateTestRacers();
     testIntervalId = setInterval(() => {
@@ -343,7 +366,8 @@ onUnmounted(() => {
 });
 
 function listenForRaceUpdates() {
-  const participantsRef = dbRef(dbRealTime, `${RACE_ID}/participants`);
+  if (!roomId.value) return;
+  const participantsRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants`);
   
   unsubscribe = onValue(participantsRef, (snapshot) => {
     const data = snapshot.val() || {};
@@ -395,9 +419,9 @@ const isRaceFinished = computed(() => {
 
 // 모든 참가자가 완주하면 자동으로 경기 종료
 watch(isRaceFinished, async (finished) => {
-  if (finished && raceState.value.status === 'started') {
+  if (finished && raceState.value.status === 'started' && roomId.value) {
     try {
-      const raceStateRef = dbRef(dbRealTime, `${RACE_ID}/state`);
+      const raceStateRef = dbRef(dbRealTime, `rooms/${roomId.value}/state`);
       await update(raceStateRef, {
         status: 'finished',
         finishedAt: Date.now()
@@ -1091,6 +1115,15 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
     <div class="race-track-container" ref="containerRef">
       <canvas ref="canvasRef" class="race-canvas"></canvas>
       
+      <!-- 준비 오버레이 -->
+      <Transition name="countdown">
+        <div v-if="raceState.status === 'preparing'" class="countdown-overlay preparing-overlay">
+          <div class="countdown-content">
+            <div class="preparing-text">준비하세요!</div>
+          </div>
+        </div>
+      </Transition>
+      
       <!-- 카운트다운 오버레이 -->
       <Transition name="countdown">
         <div v-if="countdownNumber" class="countdown-overlay">
@@ -1517,6 +1550,36 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
     0 0 20px rgba(255, 215, 0, 0.6);
   margin-top: -20px;
   animation: countdownTextPulse 0.8s ease-in-out infinite;
+}
+
+.preparing-overlay {
+  z-index: 101;
+}
+
+.preparing-text {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 8rem;
+  font-weight: 900;
+  color: #FFFFFF;
+  text-shadow: 
+    0 0 30px rgba(255, 255, 255, 0.8),
+    0 0 60px rgba(255, 215, 0, 0.8),
+    0 0 100px rgba(255, 105, 180, 0.6),
+    8px 8px 0 #FF1493,
+    -8px -8px 0 #FFD700;
+  animation: preparingPulse 1s ease-in-out infinite;
+  line-height: 1;
+}
+
+@keyframes preparingPulse {
+  0%, 100% { 
+    transform: scale(1); 
+    opacity: 1;
+  }
+  50% { 
+    transform: scale(1.05); 
+    opacity: 0.9;
+  }
 }
 
 @keyframes countdownTextPulse {

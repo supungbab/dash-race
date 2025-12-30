@@ -45,6 +45,61 @@
       }
     },
     
+    "rooms": {
+      "$roomId": {
+        // 방 상태 - 모두 읽기 가능
+        "state": {
+          ".read": true,
+          ".write": true,
+          ".validate": "newData.hasChildren(['status'])",
+          "status": {
+            ".validate": "newData.isString() && (newData.val() == 'waiting' || newData.val() == 'preparing' || newData.val() == 'countdown' || newData.val() == 'started' || newData.val() == 'finished')"
+          },
+          "preparingStartedAt": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "createdAt": {
+            ".validate": "newData.isNumber() || !newData.exists()"
+          },
+          "countdownStartedAt": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "startedAt": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "finishedAt": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "finishDistance": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          },
+          "expiresAt": {
+            ".validate": "newData.isNumber() || newData.val() == null"
+          }
+        },
+        
+        // 참가자 목록 - 모두 읽기 가능
+        "participants": {
+          ".read": true,
+          ".write": true,
+          
+          "$userId": {
+            // 참가자 데이터 검증
+            ".validate": "newData.hasChildren(['name', 'distance']) || !newData.exists()",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 20"
+            },
+            "distance": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10000"
+            },
+            "finish_time": {
+              ".validate": "newData.isNumber() || newData.val() == null"
+            }
+          }
+        }
+      }
+    },
+    
     // 다른 경로는 모두 접근 불가
     ".read": false,
     ".write": false

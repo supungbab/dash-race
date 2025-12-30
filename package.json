@@ -21,8 +21,10 @@
     "deploy:rules:ci": "firebase deploy --only database --token $FIREBASE_TOKEN"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "firebase": "^12.6.0",
     "pinia": "^3.0.4",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.22",
     "vue-router": "^4.6.3"
   },

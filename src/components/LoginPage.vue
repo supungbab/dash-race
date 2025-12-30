@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../../stores/userStore';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 
 const nickname = ref('');
@@ -39,7 +40,10 @@ const handleLogin = async () => {
     // 세션 저장
     userStore.setUser(userId, trimmedNickname, isAdmin);
     console.log('✅ 로그인 성공:', trimmedNickname, isAdmin ? '(관리자)' : '');
-    router.push('/');
+    
+    // redirect 쿼리가 있으면 그 경로로, 없으면 홈으로
+    const redirect = route.query.redirect as string;
+    router.push(redirect || '/');
   } catch (error: unknown) {
     console.error('로그인 실패:', error);
     errorMessage.value = '로그인에 실패했습니다. 다시 시도해주세요.';

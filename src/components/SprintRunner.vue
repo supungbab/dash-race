@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { dbRealTime, dbRef, runTransaction, onValue, remove } from '../config/firebase';
 import { useUserStore } from '../../stores/userStore';
-import { FINISH_DISTANCE, RACE_ID, MIN_STEP, MAX_STEP, DASH_STEP, BOOST_STEP, COUNTDOWN_DURATION } from '../config/constants';
+import { FINISH_DISTANCE, MIN_STEP, MAX_STEP, DASH_STEP, BOOST_STEP, COUNTDOWN_DURATION } from '../config/constants';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
+
+const roomId = computed(() => {
+  const room = route.query.room as string;
+  if (!room) {
+    console.error('Room ID is required');
+    return null;
+  }
+  return room;
+});
 
 // 사용자 정보
 const userId = computed(() => userStore.userId || '');
@@ -119,6 +129,11 @@ onMounted(() => {
     return;
   }
   
+  if (!roomId.value) {
+    alert('Room ID가 필요합니다. URL에 ?room=방ID를 추가해주세요.');
+    return;
+  }
+  
   // 이 페이지에서만 스크롤/확대 방지
   document.body.style.cssText = `
     position: fixed;
@@ -157,8 +172,8 @@ onUnmounted(() => {
 
 // --- 입장 확인 ---
 function checkIfAlreadyJoined() {
-  if (!userId.value) return;
-  const participantRef = dbRef(dbRealTime, `${RACE_ID}/participants/${userId.value}`);
+  if (!userId.value || !roomId.value) return;
+  const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${userId.value}`);
   
   onValue(participantRef, (snapshot) => {
     const data = snapshot.val();
@@ -176,7 +191,8 @@ function checkIfAlreadyJoined() {
 
 // --- Firebase 리스너 ---
 function listenForRaceState() {
-  const raceStateRef = dbRef(dbRealTime, `${RACE_ID}/state`);
+  if (!roomId.value) return;
+  const raceStateRef = dbRef(dbRealTime, `rooms/${roomId.value}/state`);
   
   raceStateUnsubscribe = onValue(raceStateRef, (snapshot) => {
     const data = snapshot.val();
@@ -200,12 +216,12 @@ function listenForRaceState() {
 }
 
 function listenForMyStatus() {
-  if (!userId.value) return;
+  if (!userId.value || !roomId.value) return;
   
   // 기존 리스너 해제
   unsubscribe?.();
   
-  const participantRef = dbRef(dbRealTime, `${RACE_ID}/participants/${userId.value}`);
+  const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${userId.value}`);
   
   unsubscribe = onValue(participantRef, (snapshot) => {
     const data = snapshot.val();
@@ -229,10 +245,11 @@ function listenForMyStatus() {
 }
 
 function listenForRanking() {
+  if (!roomId.value) return;
   // 기존 리스너 해제
   rankUnsubscribe?.();
   
-  const participantsRef = dbRef(dbRealTime, `${RACE_ID}/participants`);
+  const participantsRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants`);
   
   rankUnsubscribe = onValue(participantsRef, (snapshot) => {
     const data = snapshot.val();
@@ -291,7 +308,7 @@ function stopCountdown() {
 
 // --- 입장하기 ---
 async function handleJoin() {
-  if (!userId.value || isJoining.value) return;
+  if (!userId.value || !roomId.value || isJoining.value) return;
   
   // 대기 상태에서만 입장 가능
   if (raceState.value.status !== 'waiting') {
@@ -306,7 +323,7 @@ async function handleJoin() {
   isJoining.value = true;
   
   try {
-    const participantRef = dbRef(dbRealTime, `${RACE_ID}/participants/${userId.value}`);
+    const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${userId.value}`);
     
     await runTransaction(participantRef, (currentData) => {
       if (currentData === null) {
@@ -336,7 +353,7 @@ async function handleJoin() {
 
 // --- 나가기 ---
 async function handleLeave() {
-  if (!userId.value) return;
+  if (!userId.value || !roomId.value) return;
   
   // 레이스 진행 중에는 나갈 수 없음
   if (raceState.value.status === 'started' || raceState.value.status === 'countdown') {
@@ -347,7 +364,7 @@ async function handleLeave() {
   if (!confirm('레이스에서 나가시겠습니까?')) return;
   
   try {
-    const participantRef = dbRef(dbRealTime, `${RACE_ID}/participants/${userId.value}`);
+    const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${userId.value}`);
     await remove(participantRef);
     
     isJoined.value = false;
@@ -543,10 +560,10 @@ function createBoostParticles() {
 }
 
 async function handleRunClick() {
-  if (!canRun.value || isFinished.value || isRunning.value || !userId.value) return;
+  if (!canRun.value || isFinished.value || isRunning.value || !userId.value || !roomId.value) return;
   
   isRunning.value = true;
-  const participantRef = dbRef(dbRealTime, `${RACE_ID}/participants/${userId.value}`);
+  const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${userId.value}`);
 
   // 랜덤 스텝 계산
   const step = getRandomStep();
