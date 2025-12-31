@@ -1786,7 +1786,8 @@ async function handleRunClick() {
   max-width: 500px;
   width: 100%;
   max-height: 80vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: modalSlideIn 0.3s ease-out;
 }
@@ -1841,7 +1842,12 @@ async function handleRunClick() {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 12px;
-  margin-bottom: 25px;
+  margin-bottom: 0;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 5px;
+  padding-bottom: 20px;
 }
 
 .emoji-button {
@@ -1876,6 +1882,28 @@ async function handleRunClick() {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  flex-shrink: 0;
+  margin-top: auto;
+  padding-top: 25px;
+  position: relative;
+}
+
+.emoji-modal-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -30px;
+  right: -30px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 182, 193, 0.3) 20%,
+    rgba(255, 105, 180, 0.5) 50%,
+    rgba(255, 182, 193, 0.3) 80%,
+    transparent 100%
+  );
+  box-shadow: 0 1px 3px rgba(255, 182, 193, 0.2);
 }
 
 .cancel-button,
