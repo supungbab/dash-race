@@ -8,7 +8,7 @@ const router = useRouter();
 const userStore = useUserStore();
 
 const isLoginPage = computed(() => route.path === '/login');
-const hideNavToggle = computed(() => route.path === '/sprint-display' || route.path === '/');
+const hideNavToggle = computed(() => route.path.includes('/sprint-display/') || route.path === '/');
 watch(hideNavToggle, () => {
   isNavOpen.value = false;
 });

@@ -19,6 +19,7 @@ interface Racer {
   name: string;
   distance: number;
   finish_time: number | null;
+  emoji?: string; // 사용자가 선택한 이모티콘
 }
 
 interface RacersData {
@@ -83,8 +84,8 @@ const TEST_MODE = false;
 const TRACK_WIDTH = 3000; // 가상 트랙 너비
 const LANE_COUNT = 5; // 레인 수 (주자들이 분산됨)
 
-// 말 이모티콘
-const HORSE_EMOJI = '🐎';
+// 기본 이모티콘 (이모티콘이 없을 때 사용)
+const DEFAULT_EMOJI = '🐎';
 
 function generateTestRacers(): RacersData {
   const testNames = [
@@ -97,19 +98,48 @@ function generateTestRacers(): RacersData {
     '세이운스카이', '스마트팔콘', '에어윈저', '비트하야테', '시리우스심볼',
     '토플라이트', '아야베', '슈티드', '라이스샤워', '도토',
     '세븐스타', '비와아쿠스', '덴노쇼', '케이퍼', '사코토', 
-    '마쿠이', '리코리코', '하야테', '체리블로섬', '본드걸'
+    '마쿠이', '리코리코', '하야테', '체리블로섬', '본드걸',
+    '테스트1', '테스트2', '테스트3', '테스트4', '테스트5'
+  ];
+
+  // 다양한 이모티콘 목록
+  const emojis = [
+    "🚶", "🏃", "🏃‍♀️", "🏃‍♂️", "💃", "🕺", "🧍", "🧍‍♀️", "🧍‍♂️", "🧎",
+    "🧎‍♀️", "🧎‍♂️", "🧗", "🧗‍♀️", "🧗‍♂️", "🧘", "🧘‍♀️", "🧘‍♂️", "🏇", "⛷️",
+    "🏂", "🏌️", "🏌️‍♀️", "🏌️‍♂️", "🏄", "🏄‍♀️", "🏄‍♂️", "🚣", "🚣‍♀️", "🚣‍♂️",
+    "🏊", "🏊‍♀️", "🏊‍♂️", "⛹️", "⛹️‍♀️", "⛹️‍♂️", "🏋️", "🏋️‍♀️", "🏋️‍♂️", "🚴",
+    "🚴‍♀️", "🚴‍♂️", "🚵", "🚵‍♀️", "🚵‍♂️", "🤸", "🤸‍♀️", "🤸‍♂️", "🤼", "🤼‍♀️",
+    "🤼‍♂️", "🤽", "🤽‍♀️", "🤽‍♂️", "🤾", "🤾‍♀️", "🤾‍♂️", "🤹", "🤹‍♀️", "🤹‍♂️",
+    "🦵", "🦶", "👣", "🐶", "🐕", "🐩", "🐺", "🦊", "🦝", "🐱",
+    "🐈", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌",
+    "🦬", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏",
+    "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦣", "🦏", "🦛",
+    "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿️", "🦫", "🦔", "🦦",
+    "🦥", "🐨", "🐻", "🐻‍❄️", "🐼", "🦘", "🦡", "🦃", "🐔", "🐓",
+    "🐣", "🐤", "🐥", "🐦", "🐧", "🕊️", "🦅", "🦆", "🦢", "🦉",
+    "🦤", "🦩", "🦜", "🐢", "🐊", "🐍", "🦎", "🦖", "🦕", "🐙",
+    "🦑", "🦐", "🦞", "🦀", "🐡", "🐸", "🐝", "🐜", "🐞", "🦗",
+    "🕷️", "🦂", "🦟", "🦋", "🐛", "🐌", "👾", "👽", "👹", "👺",
+    "👻", "🧟", "🧟‍♀️", "🧟‍♂️", "🧜", "🧜‍♀️", "🧜‍♂️", "🧚", "🧚‍♀️", "🧚‍♂️",
+    "🧙", "🧙‍♀️", "🧙‍♂️", "🧛", "🧛‍♀️", "🧛‍♂️", "🧞", "🧞‍♀️", "🧞‍♂️", "👼",
+    "🤶", "🎅", "💂", "💂‍♀️", "💂‍♂️", "🕵️", "🕵️‍♀️", "🕵️‍♂️", "👷", "👷‍♀️",
+    "👷‍♂️", "👮", "👮‍♀️", "👮‍♂️"
   ];
 
   const testRacers: RacersData = {};
-  testNames.forEach((name, index) => {
-    const uid = `test_${index}`;
+  for (let i = 0; i < 50; i++) {
+    const uid = `test_${i}`;
+    const name = testNames[i] || `참가자${i + 1}`;
     const progress = Math.random() * 4 + 1;
+    const emoji = emojis[i % emojis.length]; // 이모티콘 순환 할당
+    
     testRacers[uid] = {
       name,
       distance: progress,
-      finish_time: null
+      finish_time: null,
+      emoji: emoji
     };
-  });
+  }
   return testRacers;
 }
 
@@ -380,18 +410,19 @@ function listenForRaceUpdates() {
 // --- Computed ---
 
 const sortedRacers = computed(() => {
-  const racerArray: Array<Racer & { uid: string }> = Object.keys(racers.value)
+  const racerArray: Array<Racer & { uid: string; emoji: string }> = Object.keys(racers.value)
     .map(uid => {
       const racer = racers.value[uid];
       return {
         uid,
         name: racer?.name || `Player ${uid}`,
         distance: racer?.distance ?? 0,
-        finish_time: racer?.finish_time ?? null
+        finish_time: racer?.finish_time ?? null,
+        emoji: racer?.emoji || DEFAULT_EMOJI
       };
     })
-    .filter((racer): racer is Racer & { uid: string } => 
-      racer.name !== undefined && racer.distance !== undefined
+    .filter((racer): racer is Racer & { uid: string; emoji: string } => 
+      racer.name !== undefined && racer.distance !== undefined && racer.emoji !== undefined
     );
 
   return racerArray.sort((a, b) => {
@@ -944,6 +975,9 @@ function drawRacers(ctx: CanvasRenderingContext2D, width: number, height: number
     ctx.ellipse(x + bounceX, y + 35, isLeader ? 30 : 25, 10, 0, 0, Math.PI * 2);
     ctx.fill();
     
+    // 참가자의 이모티콘 가져오기
+    const racerEmoji = racer.emoji || DEFAULT_EMOJI;
+    
     // 속도 잔상 (빠를 때)
     if (isRunning && racer.distance > 10) {
       ctx.globalAlpha = 0.2;
@@ -953,20 +987,20 @@ function drawRacers(ctx: CanvasRenderingContext2D, width: number, height: number
         ctx.scale(-1, 1); // 수평 반전
         ctx.font = `${50 - i * 5}px serif`;
         ctx.textAlign = 'center';
-        ctx.fillText(HORSE_EMOJI, 0, 0);
+        ctx.fillText(racerEmoji, 0, 0);
         ctx.restore();
       }
       ctx.globalAlpha = 1;
     }
     
-    // 말 이모티콘 (오른쪽을 바라보도록 반전)
+    // 참가자 이모티콘 (오른쪽을 바라보도록 반전)
     ctx.save();
     ctx.translate(x + bounceX, y + bounceY + 15);
     ctx.scale(-1, 1); // 수평 반전
     // 1등은 더 크게
     ctx.font = isLeader ? '60px serif' : '50px serif';
     ctx.textAlign = 'center';
-    ctx.fillText(HORSE_EMOJI, 0, 0);
+    ctx.fillText(racerEmoji, 0, 0);
     ctx.restore();
     
     // 1등 왕관 표시
@@ -1122,7 +1156,7 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
           <span class="leader-name">{{ sortedRacers[0]?.name }}</span>
           <span class="leader-distance">{{ Math.round(sortedRacers[0]?.distance || 0) }}m</span>
         </div>
-        <div class="leader-horse">🐎</div>
+        <div class="leader-horse">{{ sortedRacers[0]?.emoji || DEFAULT_EMOJI }}</div>
       </div>
       
       <div class="race-stats">
@@ -1200,7 +1234,7 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
             'is-leader': index === 0
           }"
         >
-          <span class="marker-emoji">🐴</span>
+          <span class="marker-emoji">{{ racer.emoji || DEFAULT_EMOJI }}</span>
           <span class="marker-rank">{{ index + 1 }}</span>
           <span class="marker-name">{{ racer.name }}</span>
         </div>
@@ -1232,7 +1266,7 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
                 <span v-else-if="index === 2">🥉</span>
                 <span v-else class="rank-number">{{ index + 1 }}</span>
               </div>
-              <div class="ranking-horse">🐎</div>
+              <div class="ranking-horse">{{ racer.emoji || DEFAULT_EMOJI }}</div>
               <div class="ranking-name">{{ racer.name }}</div>
               <div class="ranking-distance">{{ Math.round(racer.distance) }}m</div>
             </div>
@@ -1947,7 +1981,9 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
   border-radius: 25px;
   width: 90%;
   max-width: 500px;
-  max-height: 80vh;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(255, 105, 180, 0.3);
   border: 3px solid rgba(255, 182, 193, 0.5);
@@ -1987,8 +2023,9 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
 
 .modal-content {
   padding: 20px;
-  max-height: 60vh;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0; /* flexbox에서 스크롤을 위해 필요 */
 }
 
 .modal-footer {

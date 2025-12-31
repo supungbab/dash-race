@@ -42,6 +42,35 @@ const isRunning = ref(false);
 const isJoined = ref(false);
 const isJoining = ref(false);
 
+// 이모티콘 선택
+const showEmojiModal = ref(false);
+const selectedEmoji = ref('🐎'); // 기본값
+const myEmoji = ref('🐎'); // 선택한 이모티콘
+
+// 말 관련 이모티콘 목록
+const horseEmojis = [
+  "🚶", "🏃", "🏃‍♀️", "🏃‍♂️", "💃", "🕺", "🧍", "🧍‍♀️", "🧍‍♂️", "🧎",
+  "🧎‍♀️", "🧎‍♂️", "🧗", "🧗‍♀️", "🧗‍♂️", "🧘", "🧘‍♀️", "🧘‍♂️", "🏇", "⛷️",
+  "🏂", "🏌️", "🏌️‍♀️", "🏌️‍♂️", "🏄", "🏄‍♀️", "🏄‍♂️", "🚣", "🚣‍♀️", "🚣‍♂️",
+  "🏊", "🏊‍♀️", "🏊‍♂️", "⛹️", "⛹️‍♀️", "⛹️‍♂️", "🏋️", "🏋️‍♀️", "🏋️‍♂️", "🚴",
+  "🚴‍♀️", "🚴‍♂️", "🚵", "🚵‍♀️", "🚵‍♂️", "🤸", "🤸‍♀️", "🤸‍♂️", "🤼", "🤼‍♀️",
+  "🤼‍♂️", "🤽", "🤽‍♀️", "🤽‍♂️", "🤾", "🤾‍♀️", "🤾‍♂️", "🤹", "🤹‍♀️", "🤹‍♂️",
+  "🦵", "🦶", "👣", "🐶", "🐕", "🐩", "🐺", "🦊", "🦝", "🐱",
+  "🐈", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌",
+  "🦬", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏",
+  "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦣", "🦏", "🦛",
+  "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿️", "🦫", "🦔", "🦦",
+  "🦥", "🐁", "🐀", "🐨", "🐻", "🐻‍❄️", "🐼", "🦘", "🦡", "🦃",
+  "🐔", "🐓", "🐣", "🐤", "🐥", "🐦", "🐧", "🕊️", "🦅", "🦆",
+  "🦢", "🦉", "🦤", "🦩", "🦜", "🐢", "🐊", "🐍", "🦎", "🦖",
+  "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐸", "🐝", "🐜",
+  "🐞", "🦗", "🕷️", "🦂", "🦟", "🦋", "🐛", "🐌", "👾", "👽",
+  "👹", "👺", "👻", "🧟", "🧟‍♀️", "🧟‍♂️", "🧜", "🧜‍♀️", "🧜‍♂️", "🧚",
+  "🧚‍♀️", "🧚‍♂️", "🧙", "🧙‍♀️", "🧙‍♂️", "🧛", "🧛‍♀️", "🧛‍♂️", "🧞", "🧞‍♀️",
+  "🧞‍♂️", "👼", "🤶", "🎅", "💂", "💂‍♀️", "💂‍♂️", "🕵️", "🕵️‍♀️", "🕵️‍♂️",
+  "👷", "👷‍♀️", "👷‍♂️", "👮", "👮‍♀️", "👮‍♂️"
+];
+
 // 카운트다운
 const countdownNumber = ref<number | null>(null);
 let countdownInterval: ReturnType<typeof setInterval> | null = null;
@@ -117,7 +146,7 @@ const buttonText = computed(() => {
     return '⏳';
   }
   if (raceState.value.status === 'started') {
-    return '🏇';
+    return '🐎';
   }
   return '🏁';
 });
@@ -229,6 +258,11 @@ function listenForMyStatus() {
     if (data) {
       currentDistance.value = data.distance || 0;
       
+      // 이모티콘 저장
+      if (data.emoji) {
+        myEmoji.value = data.emoji;
+      }
+      
       const hasFinishTime = data.finish_time !== null && 
                             data.finish_time !== undefined && 
                             typeof data.finish_time === 'number';
@@ -241,6 +275,7 @@ function listenForMyStatus() {
       isJoined.value = false;
       isFinished.value = false;
       currentDistance.value = 0;
+      myEmoji.value = '🐎'; // 기본값으로 리셋
     }
   });
 }
@@ -307,8 +342,8 @@ function stopCountdown() {
   countdownNumber.value = null;
 }
 
-// --- 입장하기 ---
-async function handleJoin() {
+// --- 이모티콘 선택 모달 열기 ---
+function openEmojiModal() {
   if (!userId.value || !roomId.value || isJoining.value) return;
   
   // 대기 상태에서만 입장 가능
@@ -321,12 +356,26 @@ async function handleJoin() {
     return;
   }
   
-  // 만료시간 체크 (이미 입장한 참가자는 체크하지 않음)
+  // 만료시간 체크
   if (raceState.value.expiresAt && Date.now() > raceState.value.expiresAt) {
     alert('방이 만료되었습니다. 새로운 방에 참가해주세요.');
     return;
   }
   
+  showEmojiModal.value = true;
+}
+
+// --- 이모티콘 선택 ---
+function selectEmoji(emoji: string) {
+  selectedEmoji.value = emoji;
+}
+
+// --- 이모티콘 선택 후 입장하기 ---
+async function handleJoin() {
+  if (!userId.value || !roomId.value || isJoining.value) return;
+  
+  showEmojiModal.value = false;
+  myEmoji.value = selectedEmoji.value;
   isJoining.value = true;
   
   try {
@@ -334,17 +383,17 @@ async function handleJoin() {
     
     await runTransaction(participantRef, (currentData) => {
       if (currentData === null) {
-        return { name: userNickname.value, distance: 0, finish_time: null };
+        return { name: userNickname.value, distance: 0, finish_time: null, emoji: selectedEmoji.value };
       }
       
       const isWaiting = raceState.value.status === 'waiting';
       const hasFinished = currentData.finish_time !== null && currentData.finish_time !== undefined;
       
       if (isWaiting && hasFinished) {
-        return { ...currentData, name: userNickname.value, distance: 0, finish_time: null };
+        return { ...currentData, name: userNickname.value, distance: 0, finish_time: null, emoji: selectedEmoji.value };
       }
       
-      return { ...currentData, name: userNickname.value };
+      return { ...currentData, name: userNickname.value, emoji: selectedEmoji.value };
     });
     
     isJoined.value = true;
@@ -621,7 +670,7 @@ async function handleRunClick() {
     <!-- 입장 전 화면 -->
     <template v-if="!isJoined">
       <div class="lobby-content">
-        <h1 class="lobby-title">🏇 DASH RUN!</h1>
+        <h1 class="lobby-title">🐎 DASH RUN!</h1>
         <p class="lobby-subtitle">레이스에 참가하세요!</p>
         
         <div class="race-status-badge" :class="raceState.status">
@@ -634,7 +683,7 @@ async function handleRunClick() {
         
         <button 
           class="join-button"
-          @click="handleJoin"
+          @click="openEmojiModal"
           :disabled="isJoining || raceState.status !== 'waiting' || !!(raceState.expiresAt && Date.now() > raceState.expiresAt)"
         >
           <span v-if="isJoining">입장 중...</span>
@@ -645,9 +694,38 @@ async function handleRunClick() {
         </button>
         
         <div class="user-badge">
-          <span class="user-icon">🏇</span>
+          <span class="user-icon">{{ myEmoji }}</span>
           {{ userNickname }}
         </div>
+        
+        <!-- 이모티콘 선택 모달 -->
+        <Teleport to="body">
+          <div v-if="showEmojiModal" class="emoji-modal-overlay" @click.self="showEmojiModal = false">
+            <div class="emoji-modal">
+              <div class="emoji-modal-header">
+                <h2>말을 선택하세요</h2>
+                <button class="close-button" @click="showEmojiModal = false">×</button>
+              </div>
+              <div class="emoji-grid">
+                <button
+                  v-for="emoji in horseEmojis"
+                  :key="emoji"
+                  class="emoji-button"
+                  :class="{ selected: selectedEmoji === emoji }"
+                  @click="selectEmoji(emoji)"
+                >
+                  {{ emoji }}
+                </button>
+              </div>
+              <div class="emoji-modal-footer">
+                <button class="cancel-button" @click="showEmojiModal = false">취소</button>
+                <button class="confirm-button" @click="handleJoin" :disabled="isJoining">
+                  {{ isJoining ? '입장 중...' : '입장하기' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Teleport>
       </div>
     </template>
     
@@ -772,7 +850,7 @@ async function handleRunClick() {
 
       <!-- 하단 영역 (참가자 정보) -->
         <div class="user-info">
-          <span class="user-icon">🏇</span>
+          <span class="user-icon">{{ myEmoji }}</span>
           {{ userNickname }}
         </div>
 
@@ -1683,6 +1761,175 @@ async function handleRunClick() {
   .join-button {
     padding: 20px 45px;
     font-size: 1.3rem;
+  }
+}
+
+/* 이모티콘 선택 모달 */
+.emoji-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.emoji-modal {
+  background: white;
+  border-radius: 25px;
+  padding: 30px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.emoji-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.emoji-modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #FF69B4;
+  font-weight: 800;
+}
+
+.emoji-modal-header .close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.emoji-modal-header .close-button:hover {
+  background: rgba(255, 105, 180, 0.1);
+  color: #FF69B4;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.emoji-button {
+  aspect-ratio: 1;
+  border: 3px solid rgba(255, 182, 193, 0.5);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.emoji-button:hover {
+  transform: scale(1.1);
+  border-color: #FF69B4;
+  background: rgba(255, 182, 193, 0.2);
+  box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3);
+}
+
+.emoji-button.selected {
+  border-color: #FF69B4;
+  background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%);
+  box-shadow: 0 5px 20px rgba(255, 105, 180, 0.5);
+  transform: scale(1.15);
+}
+
+.emoji-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancel-button,
+.confirm-button {
+  padding: 12px 30px;
+  border-radius: 15px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cancel-button {
+  background: rgba(200, 200, 200, 0.3);
+  color: #666;
+}
+
+.cancel-button:hover {
+  background: rgba(200, 200, 200, 0.5);
+}
+
+.confirm-button {
+  background: linear-gradient(135deg, #FFB6C1 0%, #FF69B4 100%);
+  color: white;
+  box-shadow: 0 5px 15px rgba(255, 105, 180, 0.3);
+}
+
+.confirm-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 105, 180, 0.4);
+}
+
+.confirm-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 400px) {
+  .emoji-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  
+  .emoji-button {
+    font-size: 1.5rem;
+  }
+  
+  .emoji-modal {
+    padding: 20px;
+  }
+  
+  .emoji-modal-header h2 {
+    font-size: 1.2rem;
   }
 }
 </style>

@@ -96,6 +96,9 @@
             },
             "finish_time": {
               ".validate": "newData.isNumber() || newData.val() == null"
+            },
+            "emoji": {
+              ".validate": "newData.isString() || !newData.exists()"
             }
           }
         }
