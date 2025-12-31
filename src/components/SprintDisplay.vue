@@ -488,12 +488,16 @@ async function finishRace() {
   }
 }
 
-// 방 만들기로 이동
+// 현재 경기의 대기실로 이동
 function goHome() {
-  if (!confirm('방 만들기로 이동하시겠습니까?')) {
+  if (!confirm('대기실로 이동하시겠습니까?')) {
     return;
   }
-  router.push('/room');
+  if (roomId.value) {
+    router.push(`/room/${roomId.value}`);
+  } else {
+    router.push('/room');
+  }
 }
 
 // --- 유틸리티 ---
@@ -1285,7 +1289,7 @@ function drawSpeedEffects(ctx: CanvasRenderingContext2D, width: number, height: 
               @click="goHome" 
               class="home-button"
             >
-              🆕 방 만들기
+              🏠 대기실로 이동
             </button>
           </div>
         </div>

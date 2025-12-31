@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { dbRealTime, dbRef, onValue, set, update } from '../config/firebase';
+import { dbRealTime, dbRef, onValue, set, update, remove } from '../config/firebase';
 import { COUNTDOWN_DURATION } from '../config/constants';
 import QRCode from 'qrcode';
 
@@ -201,6 +201,47 @@ function copyQRUrl() {
   });
 }
 
+// 참가자 강제 퇴장
+async function kickParticipant(participantId: string, participantName: string) {
+  if (!roomId.value) return;
+  
+  if (!confirm(`"${participantName}" 님을 퇴장시키시겠습니까?`)) {
+    return;
+  }
+
+  try {
+    const participantRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants/${participantId}`);
+    await remove(participantRef);
+    alert(`"${participantName}" 님이 퇴장되었습니다.`);
+  } catch (error) {
+    console.error('퇴장 오류:', error);
+    alert(`오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 모든 참가자 퇴장
+async function kickAllParticipants() {
+  if (!roomId.value) return;
+  
+  if (participantCount.value === 0) {
+    alert('퇴장시킬 참가자가 없습니다.');
+    return;
+  }
+  
+  if (!confirm(`모든 참가자(${participantCount.value}명)를 퇴장시키시겠습니까?`)) {
+    return;
+  }
+
+  try {
+    const participantsRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants`);
+    await set(participantsRef, null);
+    alert('모든 참가자가 퇴장되었습니다.');
+  } catch (error) {
+    console.error('전체 퇴장 오류:', error);
+    alert(`오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 // 테스트용 가짜 참가자 추가
 async function addFakeParticipants() {
   if (!roomId.value) return;
@@ -267,8 +308,17 @@ onUnmounted(() => {
         <div class="participants-panel">
           <div class="participants-header">
             <h3>👥 참가자 ({{ participantCount }}명)</h3>
-            <div class="room-timer" v-if="timeRemaining > 0">
-              ⏰ {{ formatTime(timeRemaining) }}
+            <div class="header-right">
+              <div class="room-timer" v-if="timeRemaining > 0">
+                ⏰ {{ formatTime(timeRemaining) }}
+              </div>
+              <button 
+                @click="kickAllParticipants" 
+                class="kick-all-button"
+                :disabled="participantCount === 0"
+              >
+                🚫 전체 퇴장
+              </button>
             </div>
           </div>
           
@@ -298,6 +348,14 @@ onUnmounted(() => {
                   <span v-else class="status-waiting">⏳ 대기</span>
                 </div>
               </div>
+              
+              <button 
+                @click="kickParticipant(participant.id, participant.name)"
+                class="kick-button"
+                title="퇴장시키기"
+              >
+                🚪
+              </button>
             </div>
           </div>
         </div>
@@ -431,6 +489,13 @@ onUnmounted(() => {
   gap: 10px;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .participants-header h3 {
   color: #FF69B4;
   font-size: 1.2em;
@@ -547,6 +612,44 @@ onUnmounted(() => {
   color: #999;
 }
 
+.kick-all-button {
+  padding: 8px 16px;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF4757 100%);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kick-all-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+}
+
+.kick-all-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kick-button {
+  padding: 8px 12px;
+  font-size: 1.1em;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF4757 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 40px;
+}
+
+.kick-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4);
+}
+
 /* 가운데: QR 패널 */
 .qr-panel {
   display: flex;
@@ -631,11 +734,11 @@ onUnmounted(() => {
   padding: 30px;
   border: 2px solid rgba(255, 182, 193, 0.4);
   text-align: center;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .start-race-button {
@@ -650,7 +753,6 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 10px 30px rgba(50, 205, 50, 0.4);
-  flex: 1;
 }
 
 .start-race-button:hover:not(:disabled) {
@@ -681,7 +783,6 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 6px 15px rgba(255, 71, 87, 0.4);
-  flex: 1;
 }
 
 .close-room-button:hover {
