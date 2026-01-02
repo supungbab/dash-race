@@ -16,7 +16,6 @@ interface RaceState {
   startedAt?: number;
   finishedAt?: number;
   finishDistance?: number;
-  expiresAt?: number;
 }
 
 interface Participant {
@@ -29,12 +28,9 @@ const roomId = computed(() => route.params.roomId as string);
 const raceState = ref<RaceState>({ status: 'waiting' });
 const participants = ref<Record<string, Participant>>({});
 const qrCodeDataUrl = ref<string>('');
-const roomExpiresAt = ref<number | null>(null);
-const timeRemaining = ref<number>(0);
 
 let stateUnsubscribe: (() => void) | null = null;
 let participantsUnsubscribe: (() => void) | null = null;
-let expirationTimer: ReturnType<typeof setInterval> | null = null;
 
 const participantCount = computed(() => Object.keys(participants.value).length);
 
@@ -51,20 +47,6 @@ const sortedParticipants = computed(() => {
     });
 });
 
-// 방 만료 시간 체크 (입장 제한 시간만 표시)
-function checkRoomExpiration() {
-  if (roomExpiresAt.value) {
-    const now = Date.now();
-    timeRemaining.value = Math.max(0, Math.floor((roomExpiresAt.value - now) / 1000));
-  }
-}
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
 function listenForRaceState(roomId: string) {
   const raceStateRef = dbRef(dbRealTime, `rooms/${roomId}/state`);
   
@@ -72,9 +54,6 @@ function listenForRaceState(roomId: string) {
     const data = snapshot.val();
     if (data) {
       raceState.value = data as RaceState;
-      if (data.expiresAt) {
-        roomExpiresAt.value = data.expiresAt;
-      }
     } else {
       raceState.value = { status: 'waiting' };
     }
@@ -123,10 +102,6 @@ async function closeRoom() {
     // 리스너 정리
     stateUnsubscribe?.();
     participantsUnsubscribe?.();
-    if (expirationTimer) {
-      clearInterval(expirationTimer);
-      expirationTimer = null;
-    }
     
     const roomRef = dbRef(dbRealTime, `rooms/${roomId.value}`);
     await set(roomRef, null);
@@ -176,6 +151,51 @@ async function startRace() {
 
   } catch (error) {
     console.error('레이스 시작 오류:', error);
+    alert(`오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 레이스 다시하기
+async function restartRace() {
+  if (!roomId.value) return;
+  
+  if (!confirm('레이스를 다시 시작하시겠습니까? 모든 참가자의 기록이 초기화됩니다.')) {
+    return;
+  }
+
+  try {
+    const raceStateRef = dbRef(dbRealTime, `rooms/${roomId.value}/state`);
+    const participantsRef = dbRef(dbRealTime, `rooms/${roomId.value}/participants`);
+    
+    // 모든 참가자의 기록 초기화
+    const currentParticipants = participants.value;
+    const resetParticipants: Record<string, Participant> = {};
+    
+    Object.keys(currentParticipants).forEach(userId => {
+      const participant = currentParticipants[userId];
+      if (participant) {
+        resetParticipants[userId] = {
+          name: participant.name,
+          distance: 0,
+          finish_time: null
+        };
+      }
+    });
+    
+    await set(participantsRef, resetParticipants);
+    
+    // 레이스 상태 초기화
+    await update(raceStateRef, {
+      status: 'waiting',
+      preparingStartedAt: null,
+      countdownStartedAt: null,
+      startedAt: null,
+      finishedAt: null
+    });
+    
+    alert('레이스가 초기화되었습니다. 다시 시작할 수 있습니다!');
+  } catch (error) {
+    console.error('레이스 다시하기 오류:', error);
     alert(`오류가 발생했습니다: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -285,18 +305,12 @@ onMounted(() => {
     listenForRaceState(roomId.value);
     listenForParticipants(roomId.value);
     generateQRCode();
-    
-    // 만료 타이머 시작
-    expirationTimer = setInterval(checkRoomExpiration, 1000);
   }
 });
 
 onUnmounted(() => {
   stateUnsubscribe?.();
   participantsUnsubscribe?.();
-  if (expirationTimer) {
-    clearInterval(expirationTimer);
-  }
 });
 </script>
 
@@ -309,9 +323,6 @@ onUnmounted(() => {
           <div class="participants-header">
             <h3>👥 참가자 ({{ participantCount }}명)</h3>
             <div class="header-right">
-              <div class="room-timer" v-if="timeRemaining > 0">
-                ⏰ {{ formatTime(timeRemaining) }}
-              </div>
               <button 
                 @click="kickAllParticipants" 
                 class="kick-all-button"
@@ -381,6 +392,7 @@ onUnmounted(() => {
           <!-- 시작하기 버튼 -->
           <div class="start-section">
             <button 
+              v-if="raceState.status !== 'finished'"
               @click="startRace" 
               :disabled="raceState.status !== 'waiting'"
               class="start-race-button"
@@ -389,7 +401,14 @@ onUnmounted(() => {
               <span v-else-if="raceState.status === 'preparing'">⏳ 준비 중...</span>
               <span v-else-if="raceState.status === 'countdown'">🔔 카운트다운 중...</span>
               <span v-else-if="raceState.status === 'started'">🏃 진행 중</span>
-              <span v-else-if="raceState.status === 'finished'">🏁 종료됨</span>
+            </button>
+            
+            <button 
+              v-if="raceState.status === 'finished'"
+              @click="restartRace" 
+              class="restart-race-button"
+            >
+              🔄 다시하기
             </button>
             
             <button 
@@ -500,15 +519,6 @@ onUnmounted(() => {
   color: #FF69B4;
   font-size: 1.2em;
   margin: 0;
-}
-
-.room-timer {
-  font-size: 1.2em;
-  font-weight: bold;
-  background: rgba(255, 255, 255, 0.3);
-  padding: 8px 16px;
-  border-radius: 15px;
-  color: #FF69B4;
 }
 
 .no-participants {
@@ -788,6 +798,25 @@ onUnmounted(() => {
 .close-room-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(255, 71, 87, 0.5);
+}
+
+.restart-race-button {
+  width: 100%;
+  padding: 18px;
+  font-size: 1.2em;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%);
+  border: 4px solid rgba(255, 255, 255, 0.6);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 10px 30px rgba(255, 165, 0, 0.4);
+}
+
+.restart-race-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(255, 165, 0, 0.6);
 }
 
 .test-button {

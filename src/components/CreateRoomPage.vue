@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { dbRealTime, dbRef, set } from '../config/firebase';
-import { DISTANCE_OPTIONS, ROOM_EXPIRATION_DURATION } from '../config/constants';
+import { DISTANCE_OPTIONS } from '../config/constants';
 
 const router = useRouter();
 
@@ -28,7 +28,6 @@ async function createRoom() {
   try {
     // 랜덤 room ID 생성
     const roomId = Math.random().toString(36).substring(2, 15);
-    const expiresAt = Date.now() + ROOM_EXPIRATION_DURATION;
     
     // 방 데이터 생성
     const roomStateRef = dbRef(dbRealTime, `rooms/${roomId}/state`);
@@ -37,8 +36,7 @@ async function createRoom() {
       createdAt: Date.now(),
       startedAt: null,
       finishedAt: null,
-      finishDistance: selectedDistance.value,
-      expiresAt: expiresAt
+      finishDistance: selectedDistance.value
     });
     
     // 참가자 초기화
@@ -105,10 +103,6 @@ async function createRoom() {
                   <span v-else>전략적 레이스</span>
                 </span>
               </button>
-            </div>
-
-            <div class="modal-warning">
-              ⚠️ 방은 {{ROOM_EXPIRATION_DURATION / 1000 / 60}}분 후 자동으로 만료됩니다.
             </div>
           </div>
           

@@ -10,7 +10,7 @@ const userStore = useUserStore();
 const isLoginPage = computed(() => route.path === '/login');
 const hideNavToggle = computed(() => 
   route.path.includes('/sprint-display/')
-  || route.path === '/room'
+  || route.path.includes('/room')
 );
 watch(hideNavToggle, () => {
   isNavOpen.value = false;

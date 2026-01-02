@@ -25,9 +25,6 @@ export const BOOST_STEP = 6; // 부스터 발동 값 (빨간색)
 // 카운트다운 설정
 export const COUNTDOWN_DURATION = 3000; // 카운트다운 시간 (ms)
 
-// 방 만료 시간 설정
-export const ROOM_EXPIRATION_DURATION = 5 * 60 * 1000; // 5분 (ms)
-
 // 레이스 상태 타입
 export type RaceStatus = 'waiting' | 'countdown' | 'started' | 'finished';
 

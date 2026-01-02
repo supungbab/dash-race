@@ -27,7 +27,6 @@ interface RaceState {
   status: 'waiting' | 'preparing' | 'countdown' | 'started' | 'finished';
   countdownStartedAt?: number;
   finishDistance?: number;
-  expiresAt?: number; // 방 만료 시간
 }
 
 const raceState = ref<RaceState>({ status: 'waiting' });
@@ -49,6 +48,7 @@ const myEmoji = ref('🐎'); // 선택한 이모티콘
 
 // 말 관련 이모티콘 목록
 const horseEmojis = [
+  "🐈", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌",
   "🚶", "🏃", "🏃‍♀️", "🏃‍♂️", "💃", "🕺", "🧍", "🧍‍♀️", "🧍‍♂️", "🧎",
   "🧎‍♀️", "🧎‍♂️", "🧗", "🧗‍♀️", "🧗‍♂️", "🧘", "🧘‍♀️", "🧘‍♂️", "🏇", "⛷️",
   "🏂", "🏌️", "🏌️‍♀️", "🏌️‍♂️", "🏄", "🏄‍♀️", "🏄‍♂️", "🚣", "🚣‍♀️", "🚣‍♂️",
@@ -56,7 +56,6 @@ const horseEmojis = [
   "🚴‍♀️", "🚴‍♂️", "🚵", "🚵‍♀️", "🚵‍♂️", "🤸", "🤸‍♀️", "🤸‍♂️", "🤼", "🤼‍♀️",
   "🤼‍♂️", "🤽", "🤽‍♀️", "🤽‍♂️", "🤾", "🤾‍♀️", "🤾‍♂️", "🤹", "🤹‍♀️", "🤹‍♂️",
   "🦵", "🦶", "👣", "🐶", "🐕", "🐩", "🐺", "🦊", "🦝", "🐱",
-  "🐈", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌",
   "🦬", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏",
   "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦣", "🦏", "🦛",
   "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿️", "🦫", "🦔", "🦦",
@@ -146,7 +145,7 @@ const buttonText = computed(() => {
     return '⏳';
   }
   if (raceState.value.status === 'started') {
-    return '🐎';
+    return myEmoji.value ?? '🐎';
   }
   return '🏁';
 });
@@ -353,12 +352,6 @@ function openEmojiModal() {
     } else {
       alert('레이스가 이미 시작되었습니다. 다음 레이스를 기다려주세요.');
     }
-    return;
-  }
-  
-  // 만료시간 체크
-  if (raceState.value.expiresAt && Date.now() > raceState.value.expiresAt) {
-    alert('방이 만료되었습니다. 새로운 방에 참가해주세요.');
     return;
   }
   
@@ -684,12 +677,11 @@ async function handleRunClick() {
         <button 
           class="join-button"
           @click="openEmojiModal"
-          :disabled="isJoining || raceState.status !== 'waiting' || !!(raceState.expiresAt && Date.now() > raceState.expiresAt)"
+          :disabled="isJoining || raceState.status !== 'waiting'"
         >
           <span v-if="isJoining">입장 중...</span>
           <span v-else-if="raceState.status === 'finished'">🚫 종료된 레이스</span>
           <span v-else-if="raceState.status === 'started' || raceState.status === 'countdown' || raceState.status === 'preparing'">🚫 이미 시작됨</span>
-          <span v-else-if="raceState.expiresAt && Date.now() > raceState.expiresAt">🚫 만료된 방</span>
           <span v-else>🚪 입장하기</span>
         </button>
         
@@ -1846,8 +1838,7 @@ async function handleRunClick() {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding-right: 5px;
-  padding-bottom: 20px;
+  padding: 20px;
 }
 
 .emoji-button {
